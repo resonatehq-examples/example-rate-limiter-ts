@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./assets/banner.png" alt="Rate Limiter — Resonate example" />
+</p>
+
 # Rate Limiter
 
 Durable rate-limited batch processing. Sends N API calls at a controlled rate (requests per second) using `ctx.sleep()` between calls. The rate limit is preserved across process crashes — no duplicate API calls, no burst on resume.
