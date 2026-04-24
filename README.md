@@ -137,7 +137,7 @@ export function* rateLimitedBatch(
 
 ## Limitation
 
-This is a **per-workflow** rate limiter. It enforces the rate within a single workflow execution. For distributed rate limiting across multiple workers or processes, you'd need shared state (e.g., a Redis token bucket or database semaphore). Restate's rate limiter (~392 LOC) implements a full token bucket algorithm with burst support as a virtual object shared across services.
+This is a **per-workflow** rate limiter. It enforces the rate within a single workflow execution. For distributed rate limiting across multiple workers or processes, reach for shared state (e.g. a Redis token bucket, a database semaphore, or a dedicated token-bucket service with burst support) — the pattern here doesn't generalize across concurrent workflows.
 
 ## File Structure
 
@@ -153,22 +153,15 @@ example-rate-limiter-ts/
 
 **Lines of code**: ~145 total, ~25 lines of workflow logic.
 
-## Comparison
+## Why ctx.sleep() is the rate limiter
 
-Restate's rate limiter ([github](https://github.com/restatedev/examples/tree/main/typescript/patterns-use-cases/src/ratelimit)) is 392 LOC implementing Go's `golang.org/x/time/rate.Limiter` as a virtual object — token bucket with burst support, cancelation, and distributed access. Hatchet and DBOS configure rate limits as infrastructure metadata.
+Rate limiting is commonly implemented as infrastructure — a token bucket in a shared service, rate-limit metadata on a workflow queue, a sidecar algorithm calling a centralized counter. This example solves a narrower problem: pace a single bulk-API workflow, crash-safely, with nothing external.
 
-Resonate's approach: `ctx.sleep()` for spacing. 25 LOC. Survives crashes. For most bulk API scenarios (batch enrichment, bulk emails, etc.), a sleep-based rate limiter is all you need.
+`ctx.sleep(intervalMs)` between calls is a durable checkpoint. When the process resumes after a crash, Resonate checks whether each sleep has already elapsed — if yes, proceed immediately; if no, wait the remaining duration. The rate window is globally respected across restarts: 3 req/sec stays 3 req/sec even if the worker crashes mid-batch. No duplicate calls, no burst on resume.
 
-| | Resonate | Restate | Hatchet |
-|---|---|---|---|
-| Algorithm | Sleep-based spacing | Token bucket (Go port) | Platform-configured |
-| Distributed | No (single workflow) | Yes (virtual object) | Yes (server-managed) |
-| Burst support | No | Yes | Yes |
-| Workflow code | ~25 LOC | ~392 LOC | N/A |
-| Crash-safe spacing | Yes (`ctx.sleep`) | Yes (virtual object state) | Yes |
+For bulk enrichment, scheduled emails, or any workflow that calls a rate-limited API in sequence, `ctx.sleep()` in a for-loop is enough. For cross-worker distributed rate limiting with burst support, reach for a shared store as noted in Limitation above.
 
 ## Learn More
 
 - [Resonate documentation](https://docs.resonatehq.io)
-- [Restate rate limit pattern](https://github.com/restatedev/examples/tree/main/typescript/patterns-use-cases/src/ratelimit)
-- [Hatchet rate limiting](https://docs.hatchet.run/home/features/rate-limits)
+- [Durable sleep](https://github.com/resonatehq-examples/example-durable-sleep-ts) — the underlying primitive
