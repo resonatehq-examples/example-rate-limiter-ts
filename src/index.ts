@@ -66,3 +66,5 @@ if (crashMode) {
     "\nThe rate-limit window was preserved across the crash.",
   );
 }
+
+resonate.stop();
