@@ -6,6 +6,12 @@
   </picture>
 </p>
 
+<p align="center">
+  <a href="https://resonatehq.github.io/examples-ci/">
+    <img src="https://img.shields.io/endpoint?url=https://resonatehq.github.io/examples-ci/status/example-rate-limiter-ts.json" alt="examples-ci status">
+  </a>
+</p>
+
 # Rate Limiter
 
 Durable rate-limited batch processing. Sends N API calls at a controlled rate (requests per second) using `ctx.sleep()` between calls. The rate limit is preserved across process crashes — no duplicate API calls, no burst on resume.
